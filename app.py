@@ -3,11 +3,11 @@ import os
 
 import aws_cdk as cdk
 
-from infra_with_pipeline.infra_with_pipeline_stack import InfraWithPipelineStack
+from infra_with_pipeline.my_pipeline_stack import MyPipelineStack
 
 
 app = cdk.App()
-InfraWithPipelineStack(app, "InfraWithPipelineStack",
+MyPipelineStack(app, "MyPipelineStack",
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.

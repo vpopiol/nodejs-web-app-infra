@@ -5,6 +5,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
+from aws_cdk.aws_codecommit import Repository
 
 class MyPipelineStack(Stack):
 
@@ -13,8 +14,13 @@ class MyPipelineStack(Stack):
 
         pipeline = CodePipeline(
             self, "Pipeline",
-            pipeline_name="yPipeline",
-            synth=ShellStep(
-                input=CodePipelineSource.code_commit()
+            pipeline_name="MyPipeline",
+            synth=ShellStep("Synth",
+                input=CodePipelineSource.code_commit(Repository.from_repository_name(self, 'MyRepo', 'nodejs-web-app-with-infra'), branch='master'),
+                commands=[
+                    "npm install -g aws-cdk", 
+                    "python -m pip install -r requirements.txt", 
+                    "cdk synth"
+                ]
             )
         )
