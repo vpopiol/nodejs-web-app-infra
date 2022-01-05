@@ -10,7 +10,7 @@ from aws_cdk.aws_codecommit import Repository
 from aws_cdk.aws_codepipeline import Pipeline, StageProps, Artifact
 from aws_cdk.aws_codepipeline_actions import CodeCommitSourceAction, CodeBuildAction
 
-class MyCodeBuildStack(Stack):
+class NodeJsWebappPipelineStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)

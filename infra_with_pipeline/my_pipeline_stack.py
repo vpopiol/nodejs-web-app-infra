@@ -7,12 +7,12 @@ from aws_cdk import (
 from constructs import Construct
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
 from aws_cdk.aws_codecommit import Repository
-from infra_with_pipeline.my_code_build_stack import MyCodeBuildStack
+from infra_with_pipeline.nodejs_webapp_pipeline_stack import NodeJsWebappPipelineStack
 
 class WebAppBuildPipeline(Stage):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-        code_build_stack = MyCodeBuildStack(self, 'CodeBuildStack')
+        code_build_stack = NodeJsWebappPipelineStack(self, 'CodeBuildStack')
 
 
 class MyPipelineStack(Stack):
