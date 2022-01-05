@@ -1,11 +1,19 @@
 from aws_cdk import (
     # Duration,
     Stack,
+    Stage,
     # aws_sqs as sqs,
 )
 from constructs import Construct
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
 from aws_cdk.aws_codecommit import Repository
+from infra_with_pipeline.my_code_build_stack import MyCodeBuildStack
+
+class WebAppBuildPipeline(Stage):
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
+        code_build_stack = MyCodeBuildStack(self, 'CodeBuildStack')
+
 
 class MyPipelineStack(Stack):
 
@@ -14,7 +22,7 @@ class MyPipelineStack(Stack):
 
         pipeline = CodePipeline(
             self, "Pipeline",
-            pipeline_name="MyPipeline",
+            pipeline_name="nodejs-web-app-infra",
             synth=ShellStep("Synth",
                 input=CodePipelineSource.code_commit(Repository.from_repository_name(self, 'MyRepo', 'nodejs-web-app-with-infra'), branch='master'),
                 commands=[
@@ -24,3 +32,4 @@ class MyPipelineStack(Stack):
                 ]
             )
         )
+        pipeline.add_stage(WebAppBuildPipeline(self, 'WebAppBuildPipeline'))
