@@ -96,7 +96,7 @@ class NodeJsWebappPipelineStack(Stack):
 
     def build_project(self, project_id, build_image, region, account, repo_name, image_tag):
         build_environment = BuildEnvironment(
-            build_image=LinuxBuildImage.AMAZON_LINUX_2_3,
+            build_image=build_image,
             privileged=True,
             environment_variables={
                 'AWS_DEFAULT_REGION': BuildEnvironmentVariable(value=region),
