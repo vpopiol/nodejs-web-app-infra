@@ -5,7 +5,7 @@ from aws_cdk import (
     aws_ecr as ecr
     # aws_sqs as sqs,
 )
-from aws_cdk.aws_codebuild import BuildEnvironment, BuildEnvironmentVariable, BuildImageConfig, LinuxBuildImage, PipelineProject
+from aws_cdk.aws_codebuild import BuildEnvironment, BuildEnvironmentVariable, BuildImageConfig, BuildSpec, LinuxBuildImage, PipelineProject
 from constructs import Construct
 from aws_cdk.aws_codecommit import Repository
 from aws_cdk.aws_codepipeline import Pipeline, StageProps, Artifact
@@ -48,7 +48,8 @@ class NodeJsWebappPipelineStack(Stack):
             region=region,
             account=account,
             repo_name=repo_name,
-            image_tag='latest'
+            image_tag='latest',
+            build_spec_file='buildspec-manifest.yml'
         )
 
         source_output = Artifact(artifact_name='source')
@@ -94,7 +95,7 @@ class NodeJsWebappPipelineStack(Stack):
             ]
         )
 
-    def build_project(self, project_id, build_image, region, account, repo_name, image_tag):
+    def build_project(self, project_id, build_image, region, account, repo_name, image_tag, build_spec_file='buildspec.yml'):
         build_environment = BuildEnvironment(
             build_image=build_image,
             privileged=True,
@@ -105,7 +106,10 @@ class NodeJsWebappPipelineStack(Stack):
                 'IMAGE_TAG':          BuildEnvironmentVariable(value=image_tag)
             }
         )
-        project = PipelineProject(self, project_id, environment=build_environment)
+        project = PipelineProject(self, project_id, 
+            environment=build_environment,
+            build_spec=BuildSpec.from_source_filename(build_spec_file)
+        )
         project.role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name('AmazonEC2ContainerRegistryPowerUser'))
         return project
         
