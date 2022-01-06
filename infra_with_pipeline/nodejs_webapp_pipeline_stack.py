@@ -2,6 +2,7 @@ from aws_cdk import (
     # Duration,
     Stack,
     aws_iam as iam,
+    aws_ecr as ecr
     # aws_sqs as sqs,
 )
 from aws_cdk.aws_codebuild import BuildEnvironment, BuildEnvironmentVariable, BuildImageConfig, LinuxBuildImage, PipelineProject
@@ -11,13 +12,20 @@ from aws_cdk.aws_codepipeline import Pipeline, StageProps, Artifact
 from aws_cdk.aws_codepipeline_actions import CodeCommitSourceAction, CodeBuildAction
 
 class NodeJsWebappPipelineStack(Stack):
-
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
-        region = 'us-east-1'
-        account = '376611517776'
-        repo_name = 'node-web-app'
 
+        ecr_repo = ecr.Repository(self, 'ECRRepo',
+            image_scan_on_push=True
+        )
+        # region = 'us-east-1'
+        # account = '376611517776'
+        # repo_name = 'node-web-app2'
+
+        region = self.region
+        account = self.account
+        repo_name = ecr_repo.repository_name
+        
         build_x86_project = self.build_project(
             project_id='BuildProjectX86',
             build_image=LinuxBuildImage.AMAZON_LINUX_2_3,
