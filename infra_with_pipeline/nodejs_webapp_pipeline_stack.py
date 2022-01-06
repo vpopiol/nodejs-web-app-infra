@@ -18,25 +18,6 @@ class NodeJsWebappPipelineStack(Stack):
         account = '376611517776'
         repo_name = 'node-web-app'
 
-        # build_project_details = [
-        #     {
-        #         'id': 'BuildProjectX86',
-        #         'action_name': 
-        #         'build_image': LinuxBuildImage.AMAZON_LINUX_2_3,
-        #         'image_tag': 'latest-amd64'
-        #     },
-        #     {
-        #         'id': 'BuildProjectArm',
-        #         'build_image': LinuxBuildImage.AMAZON_LINUX_2_ARM_2,
-        #         'image_tag': 'latest-amd64'
-        #     },
-        #     {
-        #         'id': 'BuildProjectManifest',
-        #         'build_image': LinuxBuildImage.AMAZON_LINUX_2_3,
-        #         'image_tag': 'latest'
-        #     }
-        # ]
-
         build_x86_project = self.build_project(
             project_id='BuildProjectX86',
             build_image=LinuxBuildImage.AMAZON_LINUX_2_3,
@@ -62,18 +43,6 @@ class NodeJsWebappPipelineStack(Stack):
             image_tag='latest'
         )
 
-        # x86_build_environment = BuildEnvironment(
-        #     build_image=LinuxBuildImage.AMAZON_LINUX_2_3,
-        #     privileged=True,
-        #     environment_variables={
-        #         'AWS_DEFAULT_REGION': BuildEnvironmentVariable(value='us-east-1'),
-        #         'AWS_ACCOUNT_ID':     BuildEnvironmentVariable(value='376611517776'),
-        #         'IMAGE_REPO_NAME':    BuildEnvironmentVariable(value='node-web-app'),
-        #         'IMAGE_TAG':          BuildEnvironmentVariable(value='latest-amd64')
-        #     }
-        # )
-        # build_project = PipelineProject(self, 'BuildProjectX86', environment=x86_build_environment)
-        # build_project.role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name('AmazonEC2ContainerRegistryPowerUser'))
         source_output = Artifact(artifact_name='source')
         pipeline = Pipeline(
             self, "Pipeline",
