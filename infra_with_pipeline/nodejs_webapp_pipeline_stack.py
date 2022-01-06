@@ -15,7 +15,7 @@ class NodeJsWebappPipelineStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        ecr_repo = ecr.Repository(self, 'ECRRepo',
+        self.ecr_repo = ecr.Repository(self, 'ECRRepo',
             image_scan_on_push=True
         )
         # region = 'us-east-1'
@@ -24,8 +24,8 @@ class NodeJsWebappPipelineStack(Stack):
 
         region = self.region
         account = self.account
-        repo_name = ecr_repo.repository_name
-        
+        repo_name = self.ecr_repo.repository_name
+
         build_x86_project = self.build_project(
             project_id='BuildProjectX86',
             build_image=LinuxBuildImage.AMAZON_LINUX_2_3,
