@@ -40,7 +40,7 @@ class NodeJsWebappPipelineStack(Stack):
             region=region,
             account=account,
             repo_name=repo_name,
-            image_tag='latest-arm'
+            image_tag='latest-arm64v8'
         )
         build_manifest_project = self.build_project(
             project_id='BuildProjectManifest',
