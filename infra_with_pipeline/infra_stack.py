@@ -31,7 +31,8 @@ class InfraStack(Stack):
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("EC2InstanceProfileForImageBuilderECRContainerBuilds"),
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore")
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMPatchAssociation")
             ]
         )
 
@@ -72,6 +73,7 @@ class InfraStack(Stack):
             # security_group=self.sg,
             user_data=user_data
         )
+        instance.node.add_dependency(self.vpc)
         return instance
 
     def create_ecs(self):        
@@ -80,6 +82,7 @@ class InfraStack(Stack):
             vpc=self.vpc,
             cluster_name=self.stack_name
         )
+        cluster.node.add_dependency(self.vpc)
 
         # Create ecs execution role
         execution_role = iam.Role.from_role_arn(self, "ecs-execution-role", role_arn=self.ecs_execution_role_arn)
@@ -87,6 +90,7 @@ class InfraStack(Stack):
         # Create security group for ECS tasks
         sg = ec2.SecurityGroup(self, "SecurityGroup", vpc=self.vpc, description="Allow 8080")
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(8080))
+        sg.node.add_dependency(self.vpc)
 
         # Create task definitions
         td_x86=self.create_task_definition("X86_64", execution_role)
@@ -113,7 +117,7 @@ class InfraStack(Stack):
         return task_definition
 
     def create_ecs_service(self, task_definition, name, security_group, cluster):
-        ecs.FargateService(self, name,
+        ecs_svc = ecs.FargateService(self, name,
             cluster=cluster,
             assign_public_ip=True,
             task_definition=task_definition,
@@ -121,3 +125,4 @@ class InfraStack(Stack):
             vpc_subnets=ec2.SubnetSelection(subnets=self.vpc.select_subnets(one_per_az=True).subnets),
             desired_count=1
         )
+        ecs_svc.node.add_dependency(self.vpc)
