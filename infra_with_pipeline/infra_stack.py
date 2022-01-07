@@ -16,7 +16,7 @@ class InfraStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.repo_url = ecr_repo.repository_uri ## f'{self.account}.dkr.ecr.{self.region}.amazonaws.com/containers-multi-arch'
-        self.ecs_execution_role_arn = f'arn:aws:iam::{self.account}:role/ecsTaskExecutionRole'
+        # self.ecs_execution_role_arn = f'arn:aws:iam::{self.account}:role/ecsTaskExecutionRole'
         
         # Create VPC
         self.vpc = ec2.Vpc(self, "VPC")
@@ -26,13 +26,22 @@ class InfraStack(Stack):
         amzn_linux_arm_ami = self.get_ami(ec2.AmazonLinuxCpuType.ARM_64)
 
         # Role for EC2s allowing ECR ans SSM (for session manager)
-        self.instance_role = iam.Role(self, "Role",
+        self.instance_role = iam.Role(self, "Ec2Role",
             description="Instance role to allow to pull container images",
             assumed_by=iam.ServicePrincipal("ec2.amazonaws.com"),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("EC2InstanceProfileForImageBuilderECRContainerBuilds"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMPatchAssociation")
+            ]
+        )
+
+        # ECS Execution Role
+        self.ecs_execution_role = iam.Role(self, "EcsRole",
+            description="ECS Execution Role",
+            assumed_by=iam.ServicePrincipal("ecs.amazonaws.com"),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonECSTaskExecutionRolePolicy ")
             ]
         )
 
@@ -84,29 +93,26 @@ class InfraStack(Stack):
         )
         cluster.node.add_dependency(self.vpc)
 
-        # Create ecs execution role
-        execution_role = iam.Role.from_role_arn(self, "ecs-execution-role", role_arn=self.ecs_execution_role_arn)
-
         # Create security group for ECS tasks
         sg = ec2.SecurityGroup(self, "SecurityGroup", vpc=self.vpc, description="Allow 8080")
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(8080))
         sg.node.add_dependency(self.vpc)
 
         # Create task definitions
-        td_x86=self.create_task_definition("X86_64", execution_role)
-        td_arm=self.create_task_definition("ARM64", execution_role)
+        td_x86=self.create_task_definition("X86_64")
+        td_arm=self.create_task_definition("ARM64")
 
         #Create services
         svx_x86=self.create_ecs_service(td_x86, 'svc-x86', sg, cluster)
         svx_arm=self.create_ecs_service(td_arm, 'svc-arm', sg, cluster)
 
-    def create_task_definition(self, architecture, execution_role):
+    def create_task_definition(self, architecture):
         task_definition = ecs.TaskDefinition(self, f'task_definition_{architecture}',
             compatibility=ecs.Compatibility.FARGATE,
             network_mode=ecs.NetworkMode.AWS_VPC,
             memory_mib="512",
             cpu="256",
-            execution_role=execution_role
+            execution_role=self.ecs_execution_role
         )
         task_definition.add_container(f'container-{architecture}',
             image=ecs.ContainerImage.from_registry(self.repo_url),
