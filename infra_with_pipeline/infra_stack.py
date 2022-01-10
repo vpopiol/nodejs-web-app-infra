@@ -37,11 +37,11 @@ class InfraStack(Stack):
         )
 
         # ECS Execution Role
-        self.ecs_execution_role = iam.Role(self, "EcsRole",
+        self.ecs_execution_role = iam.Role(self, "EcsExecutionRole",
             description="ECS Execution Role",
-            assumed_by=iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+            assumed_by=iam.ServicePrincipal("ecs.amazonaws.com"),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonECSTaskExecutionRolePolicy")
+                iam.ManagedPolicy.from_aws_managed_policy_name("servicerole/AmazonECSTaskExecutionRolePolicy")
             ]
         )
 
