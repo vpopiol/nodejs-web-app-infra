@@ -82,7 +82,7 @@ class InfraStack(Stack):
             # security_group=self.sg,
             user_data=user_data
         )
-        instance.node.add_dependency(self.vpc)
+        # instance.node.add_dependency(self.vpc)
         return instance
 
     def create_ecs(self):        
@@ -91,7 +91,7 @@ class InfraStack(Stack):
             vpc=self.vpc,
             cluster_name=self.stack_name
         )
-        cluster.node.add_dependency(self.vpc)
+        # cluster.node.add_dependency(self.vpc)
 
         # Create security group for ECS tasks
         sg = ec2.SecurityGroup(self, "SecurityGroup", vpc=self.vpc, description="Allow 8080")
@@ -131,4 +131,4 @@ class InfraStack(Stack):
             vpc_subnets=ec2.SubnetSelection(subnets=self.vpc.select_subnets(one_per_az=True).subnets),
             desired_count=1
         )
-        ecs_svc.node.add_dependency(self.vpc)
+        # ecs_svc.node.add_dependency(self.vpc)
