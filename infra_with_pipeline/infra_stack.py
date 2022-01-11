@@ -5,7 +5,8 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_iam as iam,
     aws_ecr as ecr,
-    aws_ecs as ecs
+    aws_ecs as ecs,
+    aws_elasticloadbalancingv2 as lb
     # aws_sqs as sqs,
 )
 from constructs import Construct
@@ -43,6 +44,21 @@ class InfraStack(Stack):
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonECSTaskExecutionRolePolicy")
             ]
+        )
+
+        # Cretate ALB
+        self.alb = lb.ApplicationLoadBalancer(self, 'Alb',
+            vpc=self.vpc,
+            internet_facing=True,
+        )
+
+        self.alb_http_listener = self.alb.add_listener('AlbHttp', 
+            port=80,
+            default_action=lb.ListenerAction.fixed_response(
+                status_code=200,
+                content_type='text/plain',
+                message_body='OK'
+            )
         )
 
         # Create 2 instances
@@ -103,8 +119,8 @@ class InfraStack(Stack):
         td_arm=self.create_task_definition("ARM64")
 
         #Create services
-        svx_x86=self.create_ecs_service(td_x86, 'svc-x86', sg, cluster)
-        svx_arm=self.create_ecs_service(td_arm, 'svc-arm', sg, cluster)
+        svx_x86=self.create_ecs_service(td_x86, 'svc-x86', sg, cluster, 110)
+        svx_arm=self.create_ecs_service(td_arm, 'svc-arm', sg, cluster, 120)
 
     def create_task_definition(self, architecture):
         task_definition = ecs.TaskDefinition(self, f'task_definition_{architecture}',
@@ -115,6 +131,7 @@ class InfraStack(Stack):
             execution_role=self.ecs_execution_role
         )
         task_definition.add_container(f'container-{architecture}',
+            container_name=architecture,
             image=ecs.ContainerImage.from_registry(self.repo_url),
             port_mappings=[ecs.PortMapping(container_port=8080, host_port=8080, protocol=ecs.Protocol.TCP)]
         )
@@ -122,7 +139,7 @@ class InfraStack(Stack):
 
         return task_definition
 
-    def create_ecs_service(self, task_definition, name, security_group, cluster):
+    def create_ecs_service(self, task_definition, name, security_group, cluster, target_priority):
         ecs_svc = ecs.FargateService(self, name,
             cluster=cluster,
             assign_public_ip=True,
@@ -132,3 +149,14 @@ class InfraStack(Stack):
             desired_count=1
         )
         # ecs_svc.node.add_dependency(self.vpc)
+
+        # Configure ALB
+        container_name=ecs_svc.task_definition.default_container.container_name
+        lb_target = ecs_svc.load_balancer_target(container_name=container_name)
+        self.alb_http_listener.add_targets(f'EcsServiceTarget{container_name}', 
+            port=80,
+            targets=[lb_target],
+            conditions=[lb.ListenerCondition.path_patterns([f'/ecs/{name}'])],
+            priority=target_priority
+        ) 
+        return ecs_svc
