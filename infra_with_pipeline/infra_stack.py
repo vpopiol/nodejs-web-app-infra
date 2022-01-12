@@ -64,8 +64,20 @@ class InfraStack(Stack):
         )
 
         # Create 2 autoscaling groups
-        self.create_asg("container_testing_x86_instance1", amzn_linux_x86_ami, "t2.medium")
-        self.create_asg("container_testing_arm_instance1", amzn_linux_arm_ami, "t4g.medium")
+        self.create_asg(
+            name="container_testing_x86", 
+            ami=amzn_linux_x86_ami, 
+            instance_type="t2.medium",
+            uri='/ec2/x86', 
+            target_priority=110
+        )
+        self.create_asg(
+            name="container_testing_arm", 
+            ami=amzn_linux_arm_ami, 
+            instance_type="t4g.medium",
+            uri='/ec2/arm', 
+            target_priority=120
+        )
 
         # Create ecs resources
         self.create_ecs()
@@ -78,7 +90,7 @@ class InfraStack(Stack):
             cpu_type=cpu_type)
         return ami
 
-    def create_asg(self, name, ami, instance_type):
+    def create_asg(self, name, ami, instance_type, target_priority, uri):
 
         user_data = ec2.UserData.for_linux()
         user_data.add_commands(
@@ -102,7 +114,12 @@ class InfraStack(Stack):
             user_data=user_data
         )
 
-        self.alb_http_listener.add_targets(f'AsgTarget{name}', port=8080, targets=[asg])
+        self.alb_http_listener.add_targets(f'AsgTarget{name}', 
+            port=8080, 
+            targets=[asg],
+            conditions=[lb.ListenerCondition.path_patterns([uri])],
+            priority=target_priority
+        )
 
         # instance = ec2.Instance(self, name,
         #     vpc = self.vpc,
@@ -134,8 +151,22 @@ class InfraStack(Stack):
         td_arm=self.create_task_definition("ARM64")
 
         #Create services
-        svx_x86=self.create_ecs_service(td_x86, 'svc-x86', sg, cluster, 110)
-        svx_arm=self.create_ecs_service(td_arm, 'svc-arm', sg, cluster, 120)
+        svc_x86=self.create_ecs_service(
+            task_definition=td_x86, 
+            name='svc-x86', 
+            security_group=sg, 
+            cluster=cluster, 
+            target_priority=210,
+            uri='/ecs/x86'
+        )
+        svc_arm=self.create_ecs_service(
+            task_definition=td_arm, 
+            name='svc-arm', 
+            security_group=sg, 
+            cluster=cluster, 
+            target_priority=220,
+            uri='/ecs/arm'
+        )
 
     def create_task_definition(self, architecture):
         task_definition = ecs.TaskDefinition(self, f'task_definition_{architecture}',
@@ -154,7 +185,7 @@ class InfraStack(Stack):
 
         return task_definition
 
-    def create_ecs_service(self, task_definition, name, security_group, cluster, target_priority):
+    def create_ecs_service(self, task_definition, name, security_group, cluster, target_priority, uri):
         ecs_svc = ecs.FargateService(self, name,
             cluster=cluster,
             assign_public_ip=True,
@@ -171,7 +202,7 @@ class InfraStack(Stack):
         self.alb_http_listener.add_targets(f'EcsServiceTarget{container_name}', 
             port=80,
             targets=[lb_target],
-            conditions=[lb.ListenerCondition.path_patterns([f'/ecs/{name}'])],
+            conditions=[lb.ListenerCondition.path_patterns([uri])],
             priority=target_priority
         ) 
         return ecs_svc
