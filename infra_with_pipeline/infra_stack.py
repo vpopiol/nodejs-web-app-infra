@@ -6,7 +6,8 @@ from aws_cdk import (
     aws_iam as iam,
     aws_ecr as ecr,
     aws_ecs as ecs,
-    aws_elasticloadbalancingv2 as lb
+    aws_elasticloadbalancingv2 as lb,
+    aws_autoscaling as autoscaling
     # aws_sqs as sqs,
 )
 from constructs import Construct
@@ -46,12 +47,13 @@ class InfraStack(Stack):
             ]
         )
 
-        # Cretate ALB
+        # Cretate alb
         self.alb = lb.ApplicationLoadBalancer(self, 'Alb',
             vpc=self.vpc,
             internet_facing=True,
         )
 
+        # Add http listener to alb
         self.alb_http_listener = self.alb.add_listener('AlbHttp', 
             port=80,
             default_action=lb.ListenerAction.fixed_response(
@@ -61,9 +63,9 @@ class InfraStack(Stack):
             )
         )
 
-        # Create 2 instances
-        self.create_ec2_instance("container_testing_x86_instance1", amzn_linux_x86_ami, "t2.medium")
-        self.create_ec2_instance("container_testing_arm_instance1", amzn_linux_arm_ami, "t4g.medium")
+        # Create 2 autoscaling groups
+        self.create_asg("container_testing_x86_instance1", amzn_linux_x86_ami, "t2.medium")
+        self.create_asg("container_testing_arm_instance1", amzn_linux_arm_ami, "t4g.medium")
 
         # Create ecs resources
         self.create_ecs()
@@ -76,7 +78,7 @@ class InfraStack(Stack):
             cpu_type=cpu_type)
         return ami
 
-    def create_ec2_instance(self, name, ami, instance_type):
+    def create_asg(self, name, ami, instance_type):
 
         user_data = ec2.UserData.for_linux()
         user_data.add_commands(
@@ -89,17 +91,30 @@ class InfraStack(Stack):
             f'docker run -d -p 8080:8080 {self.repo_url}:latest',
             f'curl localhost:8080/hello'
         )
-        instance = ec2.Instance(self, name,
-            vpc = self.vpc,
-            instance_name=name,
+
+        # Create autoscaling group
+        asg = autoscaling.AutoScalingGroup(self, f'ASG_{name}',
+            auto_scaling_group_name=name,
+            vpc=self.vpc,
             instance_type=ec2.InstanceType(instance_type),
             machine_image=ami,
             role=self.instance_role,
-            # security_group=self.sg,
             user_data=user_data
         )
-        # instance.node.add_dependency(self.vpc)
-        return instance
+
+        self.alb_http_listener.add_targets(f'AsgTarget{name}', port=8080, targets=[asg])
+
+        # instance = ec2.Instance(self, name,
+        #     vpc = self.vpc,
+        #     instance_name=name,
+        #     instance_type=ec2.InstanceType(instance_type),
+        #     machine_image=ami,
+        #     role=self.instance_role,
+        #     # security_group=self.sg,
+        #     user_data=user_data
+        # )
+        # # instance.node.add_dependency(self.vpc)
+        # return instance
 
     def create_ecs(self):        
         # Create ECS Cluster
