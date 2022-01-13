@@ -1,7 +1,11 @@
 
-# Welcome to your CDK Python project!
+# Infrastructure for nodejs Hello World Application
 
-This is a blank project for Python development with CDK.
+This CDK Project creates a self mutable CodePipeline.
+
+After completely execute, the following infrastructure will be created:
+
+![infrastructure](diagram.png)
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
