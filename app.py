@@ -7,7 +7,7 @@ from infra_with_pipeline.my_pipeline_stack import MyPipelineStack
 
 
 app = cdk.App()
-MyPipelineStack(app, "MyPipelineStack",
+MyPipelineStack(app, "BootstrapStack",
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.
